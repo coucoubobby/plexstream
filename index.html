@@ -1,69 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Simple Livestream</title>
+    <title>PlexStream</title>
     <style>
         video { width: 400px; border: 1px solid #000; }
         button { margin: 10px; padding: 10px; }
+        #chat { margin: 10px; }
+        #messages { border: 1px solid #ccc; height: 200px; overflow-y: scroll; padding: 10px; }
+        #chatInput { width: 300px; padding: 5px; }
     </style>
 </head>
 <body>
-    <h2>Livestream</h2>
+    <h2>PlexStream</h2>
     <div>
         <video id="broadcasterVideo" autoplay playsinline></video>
         <video id="viewerVideo" autoplay playsinline></video>
     </div>
     <button onclick="startBroadcast()">Start Broadcast</button>
     <button onclick="watchBroadcast()">Watch Broadcast</button>
+    <div id="chat">
+        <h3>Chat</h3>
+        <div id="messages"></div>
+        <input id="chatInput" type="text" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
 
     <script>
         let peerConnection;
         const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
         const broadcasterVideo = document.getElementById('broadcasterVideo');
         const viewerVideo = document.getElementById('viewerVideo');
-
-        // WebSocket for signaling
+        const messagesDiv = document.getElementById('messages');
+        const chatInput = document.getElementById('chatInput');
         const socket = new WebSocket('ws://localhost:8080');
 
         socket.onmessage = async ({ data }) => {
-            const message = JSON.parse(data);
-            if (message.offer) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                socket.send(JSON.stringify({ answer }));
-            } else if (message.answer) {
+	@@ -36,6 +45,11 @@ <h2>Livestream</h2>
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(message.answer));
             } else if (message.iceCandidate) {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(message.iceCandidate));
+            } else if (message.chat) {
+                const msg = document.createElement('p');
+                msg.textContent = message.chat;
+                messagesDiv.appendChild(msg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
         };
 
-        async function startBroadcast() {
-            peerConnection = new RTCPeerConnection(config);
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            broadcasterVideo.srcObject = stream;
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-
-            peerConnection.onicecandidate = ({ candidate }) => {
-                if (candidate) socket.send(JSON.stringify({ iceCandidate: candidate }));
-            };
-
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            socket.send(JSON.stringify({ offer }));
-        }
-
-        async function watchBroadcast() {
-            peerConnection = new RTCPeerConnection(config);
-            peerConnection.ontrack = ({ streams: [stream] }) => {
-                viewerVideo.srcObject = stream;
-            };
-
-            peerConnection.onicecandidate = ({ candidate }) => {
+	@@ -64,6 +78,19 @@ <h2>Livestream</h2>
                 if (candidate) socket.send(JSON.stringify({ iceCandidate: candidate }));
             };
         }
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (message) {
+                socket.send(JSON.stringify({ chat: message }));
+                chatInput.value = '';
+            }
+        }
+
+        // Allow sending message with Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
     </script>
 </body>
 </html>
