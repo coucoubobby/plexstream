@@ -1,7 +1,7 @@
 video {
-     width:400px;
-    border:1px
-    }
+    width: 400px;
+    border: 1px solid #000;
+}
 
 button {
     margin: 10px;
@@ -9,18 +9,17 @@ button {
 }
 
 #chat {
-    margin: 10px; 
+    margin: 10px;
 }
 
 #messages {
-    border: 1px;
-    solid #ccc; 
-    height: 200px; 
-    overflow-y: scroll; 
-    padding: 10px; 
+    border: 1px solid #ccc;
+    height: 200px;
+    overflow-y: scroll;
+    padding: 10px;
 }
 
-#chatInput { 
-    width: 300px; 
-    padding: 5px; 
+#chatInput {
+    width: 300px;
+    padding: 5px;
 }

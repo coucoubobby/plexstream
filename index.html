@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>PlexStream</title>
-    <style src = ./styles/style.css>
+    <link rel="stylesheet" href="./styles/style.css">
 </head>
 <body>
     <h2>PlexStream</h2>
@@ -29,7 +29,20 @@
         const socket = new WebSocket('ws://localhost:8080');
 
         socket.onmessage = async ({ data }) => {
-	@@ -36,6 +45,11 @@ <h2>Livestream</h2>
+            const message = JSON.parse(data);
+            if (message.offer) {
+                peerConnection = new RTCPeerConnection(config);
+                peerConnection.ontrack = (event) => {
+                    viewerVideo.srcObject = event.streams[0];
+                };
+                peerConnection.onicecandidate = ({ candidate }) => {
+                    if (candidate) socket.send(JSON.stringify({ iceCandidate: candidate }));
+                };
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.send(JSON.stringify({ answer }));
+            } else if (message.answer) {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(message.answer));
             } else if (message.iceCandidate) {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(message.iceCandidate));
@@ -41,7 +54,25 @@
             }
         };
 
-	@@ -64,6 +78,19 @@ <h2>Livestream</h2>
+        async function startBroadcast() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            broadcasterVideo.srcObject = stream;
+            peerConnection = new RTCPeerConnection(config);
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+            peerConnection.onicecandidate = ({ candidate }) => {
+                if (candidate) socket.send(JSON.stringify({ iceCandidate: candidate }));
+            };
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            socket.send(JSON.stringify({ offer }));
+        }
+
+        async function watchBroadcast() {
+            peerConnection = new RTCPeerConnection(config);
+            peerConnection.ontrack = (event) => {
+                viewerVideo.srcObject = event.streams[0];
+            };
+            peerConnection.onicecandidate = ({ candidate }) => {
                 if (candidate) socket.send(JSON.stringify({ iceCandidate: candidate }));
             };
         }
