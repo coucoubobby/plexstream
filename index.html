@@ -1,95 +1,128 @@
- <!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PlexStream</title>
-    <link rel="stylesheet" href="./styles/style.css">
+    <style>
+        body {
+            background-color: black;
+            color: linear-gradient(to right, purple, blue);
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+        }
+        .logo {
+            width: 50px;
+            height: 50px;
+            background-image: url('placeholder-icon.png');
+            background-size: cover;
+            margin-right: 10px;
+        }
+        .nav {
+            display: flex;
+            gap: 15px;
+        }
+        .nav button {
+            background: linear-gradient(to right, purple, blue);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .nav button:hover {
+            transform: scale(1.05);
+        }
+        .stream-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .stream-title {
+            color: linear-gradient(to right, purple, blue);
+            font-size: 24px;
+        }
+        .viewer-count {
+            color: white;
+        }
+        .chat {
+            width: 300px;
+            height: 200px;
+            background: gray;
+            margin-top: 10px;
+            overflow-y: auto;
+        }
+        .chat-input {
+            width: 300px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <header><img src = "https://cdn.gldcdn.com/TeamAvatar/02df206747b819773c8cf4df0bd4b029-Large.png?w=50&h=50"><h2>PlexStream</h2></header>
-    <div>
-        <video id="broadcasterVideo" autoplay playsinline></video>
-        <video id="viewerVideo" autoplay playsinline></video>
-    </div>
-    <button onclick="startBroadcast()">Start Broadcast</button>
-    <button onclick="watchBroadcast()">Watch Broadcast</button>
-    <div id="chat">
-        <h3>Chat</h3>
-        <div id="messages"></div>
-        <input id="chatInput" type="text" placeholder="Type a message...">
+    <header>
+        <div class="logo"></div>
+        <h1>PlexStream</h1>
+        <div class="nav">
+            <button onclick="showHome()">Home</button>
+            <button onclick="showFollowing()">Following</button>
+            <button onclick="showForYou()">For You</button>
+            <button onclick="startBroadcast()">Start Streaming</button>
+            <button onclick="login()">Log In</button>
+        </div>
+    </header>
+    <div class="stream-container" id="streamContainer">
+        <h2 class="stream-title" id="streamTitle"></h2>
+        <div class="viewer-count" id="viewerCount"></div>
+        <div class="chat" id="chat"></div>
+        <input type="text" class="chat-input" id="chatInput" placeholder="Type your message...">
         <button onclick="sendMessage()">Send</button>
     </div>
-
     <script>
-        let peerConnection;
-        const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-        const broadcasterVideo = document.getElementById('broadcasterVideo');
-        const viewerVideo = document.getElementById('viewerVideo');
-        const messagesDiv = document.getElementById('messages');
-        const chatInput = document.getElementById('chatInput');
-        const socket = new WebSocket('ws://localhost:8080');
+        let isStreaming = false;
+        let viewerCount = 0;
 
-        socket.onmessage = async ({ data }) => {
-            const message = JSON.parse(data);
-            if (message.offer) {
-                peerConnection = new RTCPeerConnection(config);
-                peerConnection.ontrack = (event) => {
-                    viewerVideo.srcObject = event.streams[0];
-                };
-                peerConnection.onicecandidate = ({ candidate }) => {
-                    if (candidate) socket.send(JSON.stringify({ iceCandidate: candidate }));
-                };
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                socket.send(JSON.stringify({ answer }));
-            } else if (message.answer) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(message.answer));
-            } else if (message.iceCandidate) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(message.iceCandidate));
-            } else if (message.chat) {
-                const msg = document.createElement('p');
-                msg.textContent = message.chat;
-                messagesDiv.appendChild(msg);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            }
-        };
-
-        async function startBroadcast() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            broadcasterVideo.srcObject = stream;
-            peerConnection = new RTCPeerConnection(config);
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-            peerConnection.onicecandidate = ({ candidate }) => {
-                if (candidate) socket.send(JSON.stringify({ iceCandidate: candidate }));
-            };
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            socket.send(JSON.stringify({ offer }));
+        function showHome() {
+            // Logic to show home page
         }
 
-        async function watchBroadcast() {
-            peerConnection = new RTCPeerConnection(config);
-            peerConnection.ontrack = (event) => {
-                viewerVideo.srcObject = event.streams[0];
-            };
-            peerConnection.onicecandidate = ({ candidate }) => {
-                if (candidate) socket.send(JSON.stringify({ iceCandidate: candidate }));
-            };
+        function showFollowing() {
+            // Logic to show following page
+        }
+
+        function showForYou() {
+            // Logic to show for you page
+        }
+
+        function startBroadcast() {
+            isStreaming = true;
+            document.getElementById('streamContainer').style.display = 'flex';
+            document.getElementById('streamTitle').innerText = "Live Stream Title";
+            updateViewerCount();
+        }
+
+        function updateViewerCount() {
+            viewerCount++;
+            document.getElementById('viewerCount').innerText = viewerCount + " viewers online";
+        }
+
+        function login() {
+            // Logic for login
         }
 
         function sendMessage() {
-            const message = chatInput.value.trim();
-            if (message) {
-                socket.send(JSON.stringify({ chat: message }));
-                chatInput.value = '';
-            }
+            const message = document.getElementById('chatInput').value;
+            const chatBox = document.getElementById('chat');
+            chatBox.innerHTML += `<div>${message}</div>`;
+            document.getElementById('chatInput').value = '';
         }
-
-        // Allow sending message with Enter key
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
     </script>
-    <iframe src="https://www.guilded.gg/canvas_index.html?route=%2Fcanvas%2Fembed%2Fbadge%2FRnJobggR" width="166" height="48" frameborder="0" scrolling="no"></iframe>
 </body>
 </html>
+<iframe src="https://www.guilded.gg/canvas_index.html?route=%2Fcanvas%2Fembed%2Fbadge%2FRnJobggR" width="166" height="48" frameborder="0" scrolling="no"></iframe>
