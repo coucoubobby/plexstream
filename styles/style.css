@@ -1,5 +1,5 @@
 body {
-  background-color: #423E4F
+  background-color: #423E4F;
 }
 
 h2 {
@@ -9,7 +9,7 @@ h2 {
   font-style: normal;
   font-variation-settings:
     "wdth" 100;
-  color: white
+  color: white;
 }
 
 h3 {
@@ -19,7 +19,7 @@ h3 {
   font-style: normal;
   font-variation-settings:
     "wdth" 100;
-  color: white
+  color: white;
 }
 
 video {
@@ -30,6 +30,7 @@ video {
 button {
     margin: 10px;
     border-radius: 15px;
+    cursor: pointer;
 }
 
 #chat {
