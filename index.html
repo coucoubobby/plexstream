@@ -1,104 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PlexStream</title>
-    <style>
-        body {
-            background-color: black;
-            color: linear-gradient(to right, purple, blue);
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-        }
-        .logo {
-            width: 50px;
-            height: 50px;
-            background-image: url('placeholder-icon.png');
-            background-size: cover;
-            margin-right: 10px;
-        }
-        .nav {
-            display: flex;
-            gap: 15px;
-        }
-        .nav button {
-            background: linear-gradient(to right, purple, blue);
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .nav button:hover {
-            transform: scale(1.05);
-        }
-        .stream-container {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-        }
-        .stream-title {
-            color: linear-gradient(to right, purple, blue);
-            font-size: 24px;
-        }
-        .viewer-count {
-            color: white;
-        }
-        .chat {
-            width: 300px;
-            height: 200px;
-            background: gray;
-            margin-top: 10px;
-            overflow-y: auto;
-        }
-        .chat-input {
-            width: 300px;
-            margin-top: 10px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlexStream</title>
+<style>
+    * {margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+    body{background:#0a0a0a;color:#fff;line-height:1.5;}
+    a{text-decoration:none;}
+    h1,h2,p,span,a{background: linear-gradient(90deg,#a259ff,#1e90ff);-webkit-background-clip: text;-webkit-text-fill-color: transparent;}
+    button{cursor:pointer;border:none;border-radius:4px;padding:8px 16px;background: linear-gradient(90deg,#a259ff,#1e90ff);color:#fff;transition: filter 0.2s;}
+    button:hover{filter: brightness(0.85);}
+    header,footer{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;background:#111;}
+    main{padding:20px; max-width:1200px; margin:auto;}
+    nav a{margin:0 15px;}
+    section{margin-bottom:40px;}
+    .carousel,.grid{display:flex;gap:15px;overflow-x:auto;}
+    .card{background:#222;padding:15px;border-radius:8px;min-width:200px;flex-shrink:0;}
+    input,select{padding:8px;margin:5px 0;border-radius:4px;border:none;width:100%;}
+    #chat-container,#messages{height:250px;overflow-y:auto;background:#111;padding:10px;border-radius:6px;margin-top:10px;}
+    #chat-container p,#messages p{margin:5px 0;}
+    .flex-row{display:flex;align-items:center;gap:10px;}
+    .hidden{display:none;}
+    video{width:100%;max-width:500px;margin:10px 0;border-radius:8px;background:#000;}
+    .chat-msg strong{margin-right:5px;}
+    #search-results .card{cursor:pointer;}
+</style>
 </head>
 <body>
-    <header>
-        <div class="logo"></div>
-        <h1>PlexStream</h1>
-        <div class="nav">
-            <button onclick="showHome()">Home</button>
-            <button onclick="showFollowing()">Following</button>
-            <button onclick="showForYou()">For You</button>
-            <button onclick="startBroadcast()">Start Streaming</button>
-            <button onclick="login()">Log In</button>
-        </div>
-    </header>
-    <div class="stream-container" id="streamContainer">
-        <h2 class="stream-title" id="streamTitle"></h2>
-        <div class="viewer-count" id="viewerCount"></div>
-        <div class="chat" id="chat"></div>
-        <input type="text" class="chat-input" id="chatInput" placeholder="Type your message...">
-        <button onclick="sendMessage()">Send</button>
+
+<header>
+    <div id="logo"><strong>PlexStream</strong></div>
+    <nav>
+        <a href="#" onclick="showSection('home')">Home</a>
+        <a href="#" onclick="showSection('browse')">Browse</a>
+        <a href="#" onclick="showSection('following')">Following</a>
+    </nav>
+    <div id="user-actions">
+        <button onclick="showLogin()">Login / Signup</button>
     </div>
-    <script>
-        let isStreaming = false;
-        let viewerCount = 0;
+</header>
 
-        function showHome() {
-            // Logic to show home page
-        }
+<main>
+    <!-- HOME PAGE -->
+    <section id="home">
+        <h1>Welcome to PlexStream</h1>
+        <div class="flex-row">
+            <button id="go-live-btn">Go Live</button>
+            <input type="text" placeholder="Search streams by title or ID..." id="search-input"/>
+            <button onclick="searchStreams()">Search</button>
+        </div>
 
-        function showFollowing() {
-            // Logic to show following page
-        }
+        <h2>Featured Streams</h2>
+        <div class="carousel" id="featured-streams">
+            <div class="card">Stream 1</div>
+            <div class="card">Stream 2</div>
+            <div class="card">Stream 3</div>
+        </div>
 
-        function showForYou() {
-            // Logic to show for you page
-        }
+        <h2>Search Results</h2>
+        <div class="grid" id="search-results"></div>
+    </section>
+
+    <!-- STREAM VIEWER -->
+    <section id="viewer" class="hidden">
+        <h2 id="viewer-title">Stream Title</h2>
+        <video id="stream-player" autoplay controls></video>
+        <p>Stream ID: <span id="stream-id"></span></p>
+        <div id="chat-container"></div>
+        <div class="flex-row">
+            <input id="chat-input" placeholder="Type a message"/>
+            <button id="chat-send-btn">Send</button>
+        </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="hidden">
+        <h2>Streamer Dashboard</h2>
+        <video id="broadcasterVideo" autoplay playsinline></video>
+        <label>Stream Title:<input type="text" id="stream-title"/></label>
+        <label>Category:
+            <select id="stream-category">
+                <option value="gaming">Gaming</option>
+                <option value="music">Music</option>
+                <option value="chat">Chat</option>
+            </select>
+        </label>
+        <div class="flex-row">
+            <button id="start-stream-btn">Start Streaming</button>
+            <button id="stop-stream-btn" class="hidden">Stop Streaming</button>
+        </div>
+        <p>Stream Key: <span id="stream-key">XXXX-XXXX</span> <button onclick="copyKey()">Copy</button></p>
+        <div id="chat">
+            <h3>Chat</h3>
+            <div id="messages"></div>
+            <input id="chatInputDashboard" type="text" placeholder="Type a message...">
+            <button onclick="sendMessageDashboard()">Send</button>
+        </div>
+    </section>
+
+    <!-- LOGIN MODAL -->
+    <section id="login-modal" class="hidden">
+        <h2>Login / Signup</h2>
+        <label>Username:<input type="text" id="login-user"/></label>
+        <label>Password:<input type="password" id="login-pass"/></label>
+        <div class="flex-row">
+            <button onclick="login()">Login</button>
+            <button onclick="signup()">Signup</button>
+            <button onclick="hideLogin()">Close</button>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div>PlexStream &copy; 2025</div>
+    <div>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Help</a>
+        <a href="#">Status</a>
+    </div>
+</footer>
+
+<script>
+let currentUser = null;
+const userColors = {};
+let ws = new WebSocket("ws://localhost:8080");
+let peerConnection;
+const config={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+
+// NAV
+function showSection(id){
+    document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+
+// LOGIN
+function showLogin(){document.getElementById('login-modal').classList.remove('hidden');}
+function hideLogin(){document.getElementById('login-modal').classList.add('hidden');}
+function login(){
+    const u=document.getElementById('login-user').value.trim();
+    const p=document.getElementById('login-pass').value.trim();
+    if(u && p){
+        currentUser=u;
+        if(!userColors[u]) userColors[u]=randomColor();
+        alert('Logged in as '+u);
+        hideLogin();
+        document.getElementById('user-actions').innerHTML=`<span>${u}</span> <button onclick="logout()">Logout</button>`;
+    }
+}
+function signup(){login();}
+function logout(){
+    currentUser=null;
+    document.getElementById('user-actions').innerHTML=`<button onclick="showLogin()">Login / Signup</button>`;
+    alert('Logged out');
+}
+
+// COLOR
+function randomColor(){
+    const colors = ["#1e90ff","#ff4c4c","#4cff4c","#ffd93d","#a259ff","#ff7f50","#00ced1"];
+    return colors[Math.floor(Math.random()*colors.length)];
+}
+
+// STREAM SEARCH
+function searchStreams(){
+    const q=document.getElementById("search-input").value;
+    ws.send(JSON.stringify({type:"search",query:q}));
+}
+function renderResults(list){
+    const resultsDiv=document.getElementById("search-results");
+    resultsDiv.innerHTML="";
+    list.forEach(s=>{
+        const div=document.createElement("div");
+        div.className="card";
+        div.textContent=`${s.title} (ID: ${s.id})`;
+        div.onclick=()=>watchStream(s);
+        resultsDiv.appendChild(div);
+    });
+}
+
+// WATCH STREAM
+function watchStream(s){
+    document.getElementById("viewer-title").textContent=s.title;
+    document.getElementById("stream-id").textContent=s.id;
+    showSection("viewer");
+}
+
+// START / STOP STREAM
+document.getElementById('go-live-btn').addEventListener('click',()=>{if(!currentUser)return alert("Login first"); showSection('dashboard');});
+const startBtn=document.getElementById('start-stream-btn');
+const stopBtn=document.getElementById('stop-stream-btn');
+const broadcasterVideo=document.getElementById('broadcasterVideo');
+
+startBtn.addEventListener('click',async ()=>{
+    if(!currentUser)return alert("Login first");
+    startBtn.classList.add('hidden'); stopBtn.classList.remove('hidden');
+    const title=document.getElementById("stream-title").value||"Untitled";
+    const category=document.getElementById("stream-category").value;
+    const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+    broadcasterVideo.srcObject=stream;
+    peerConnection=new RTCPeerConnection(config);
+    stream.getTracks().forEach(track=>peerConnection.addTrack(track,stream));
+    peerConnection.onicecandidate=({candidate})=>{
+        if(candidate) ws.send(JSON.stringify({type:"iceCandidate",iceCandidate:candidate}));
+    };
+    const offer=await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    ws.send(JSON.stringify({type:"offer",offer}));
+    ws.send(JSON.stringify({type:"newStream",title,category,user:currentUser}));
+});
+
+stopBtn.addEventListener('click',()=>{
+    stopBtn.classList.add('hidden'); startBtn.classList.remove('hidden');
+    ws.send(JSON.stringify({type:"stopStream"}));
+    if(peerConnection){
+        peerConnection.getSenders().forEach(s=>peerConnection.removeTrack(s));
+        peerConnection.close(); peerConnection=null;
+    }
+    if(broadcasterVideo.srcObject){
+        broadcasterVideo.srcObject.getTracks().forEach(t=>t.stop());
+        broadcasterVideo.srcObject=null;
+    }
+});
+
+// COPY KEY
+function copyKey(){navigator.clipboard.writeText(document.getElementById('stream-key').innerText); alert('Copied!');}
+
+// CHAT
+const chatInput=document.getElementById('chat-input');
+const chatSendBtn=document.getElementById('chat-send-btn');
+const chatContainer=document.getElementById('chat-container');
+const chatInputDashboard=document.getElementById('chatInputDashboard');
+const messagesDiv=document.getElementById('messages');
+
+function renderChat(message){
+    const p=document.createElement('p'); p.className='chat-msg';
+    const strong=document.createElement('strong');
+    const [user,text]=message.split(":"); 
+    strong.textContent=user; 
+    strong.style.color=userColors[user]||"#fff";
+    const span=document.createElement('span'); span.textContent=":"+text;
+    p.appendChild(strong); p.appendChild(span);
+    chatContainer.appendChild(p.cloneNode(true));
+    messagesDiv.appendChild(p.cloneNode(true));
+    chatContainer.scrollTop=chatContainer.scrollHeight;
+    messagesDiv.scrollTop=messagesDiv.scrollHeight;
+}
+
+function sendMessage(){
+    const msg=chatInput.value.trim();
+    if(!currentUser){alert("Login first"); return;}
+    if(msg){
+        const fullMsg=currentUser+":"+msg;
+        ws.send(JSON.stringify({type:"chat",chat:msg,user:currentUser}));
+        renderChat(fullMsg);
+        chatInput.value='';
+    }
+}
+chatSendBtn.addEventListener('click',sendMessage);
+chatInput.addEventListener('keypress',e=>{if(e.key==='Enter') sendMessage();});
+
+function sendMessageDashboard(){
+    const msg=chatInputDashboard.value.trim();
+    if(!currentUser){alert("Login first"); return;}
+    if(msg){
+        const fullMsg=currentUser+":"+msg;
+        ws.send(JSON.stringify({type:"chat",chat:msg,user:currentUser}));
+        renderChat(fullMsg);
+        chatInputDashboard.value='';
+    }
+}
+
+// WS HANDLER
+ws.onmessage=async({data})=>{
+    const msg=JSON.parse(data);
+    if(msg.type==="chat"){
+        renderChat(msg.user+":"+msg.chat);
+    }else if(msg.type==="streamsUpdate"){
+        renderResults(msg.streams);
+    }else if(msg.type==="searchResults"){
+        renderResults(msg.results);
+    }else if(msg.offer){
+        peerConnection=new RTCPeerConnection(config);
+        peerConnection.ontrack=(e)=>document.getElementById("stream-player").srcObject=e.streams[0];
+        peerConnection.onicecandidate=({candidate})=>{
+            if(candidate) ws.send(JSON.stringify({type:"iceCandidate",iceCandidate:candidate}));
+        };
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.offer));
+        const answer=await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        ws.send(JSON.stringify({type:"answer",answer}));
+    }else if(msg.answer){
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.answer));
+    }else if(msg.iceCandidate){
+        await peerConnection.addIceCandidate(new RTCIceCandidate(msg.iceCandidate));
+    }
+};
+</script>
+</body>
+            </html>        }
 
         function startBroadcast() {
             isStreaming = true;
