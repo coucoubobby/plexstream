@@ -1,74 +1,41 @@
 const WebSocket = require("ws");
 const wss = new WebSocket.Server({ port: 8080 });
 
-let streams = []; // store active streams {id,user,title,category}
-let clients = {}; // track connections by id
+let streams = []; // {id,title,category,user}
+function generateId(){return Math.random().toString(36).substr(2,9);}
 
-function broadcast(data, exclude) {
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN && client !== exclude) {
-            client.send(JSON.stringify(data));
-        }
-    });
+function broadcast(data,exclude){
+    wss.clients.forEach(c=>{if(c.readyState===WebSocket.OPEN && c!==exclude) c.send(JSON.stringify(data));});
 }
 
-wss.on("connection", (ws) => {
-    ws.id = Math.random().toString(36).substr(2, 9);
+wss.on("connection",(ws)=>{
+    ws.id=generateId();
 
-    ws.on("message", (msg) => {
-        try {
-            const data = JSON.parse(msg);
-
-            // handle chat
-            if (data.type === "chat") {
-                broadcast({ type: "chat", chat: data.chat, user: data.user }, ws);
+    ws.on("message",(msg)=>{
+        try{
+            const data=JSON.parse(msg);
+            if(data.type==="chat"){broadcast({type:"chat",user:data.user,chat:data.chat},ws);}
+            else if(data.type==="newStream"){
+                const stream={id:generateId(),title:data.title,category:data.category,user:data.user};
+                streams.push(stream); ws.stream=stream;
+                broadcast({type:"streamsUpdate",streams});
             }
-
-            // handle new stream start
-            else if (data.type === "newStream") {
-                const stream = {
-                    id: ws.id,
-                    user: data.user,
-                    title: data.title,
-                    category: data.category,
-                };
-                streams.push(stream);
-                ws.stream = stream;
-                broadcast({ type: "streamsUpdate", streams });
+            else if(data.type==="stopStream"){
+                streams=streams.filter(s=>s.id!==ws.stream?.id); broadcast({type:"streamsUpdate",streams});
             }
-
-            // handle stop stream
-            else if (data.type === "stopStream") {
-                streams = streams.filter((s) => s.id !== ws.id);
-                broadcast({ type: "streamsUpdate", streams });
+            else if(data.type==="search"){
+                const q=data.query.toLowerCase();
+                const results=streams.filter(s=>s.title.toLowerCase().includes(q)||s.id.toLowerCase().includes(q))
+                    .map(s=>({id:s.id,title:s.title,live:true}));
+                ws.send(JSON.stringify({type:"searchResults",results}));
             }
-
-            // handle search
-            else if (data.type === "search") {
-                const q = data.query.toLowerCase();
-                const results = streams.filter(
-                    (s) =>
-                        s.title.toLowerCase().includes(q) ||
-                        s.user.toLowerCase().includes(q)
-                );
-                ws.send(JSON.stringify({ type: "searchResults", results }));
-            }
-
-            // handle WebRTC signals
-            else if (data.type === "offer" || data.type === "answer" || data.type === "iceCandidate") {
-                broadcast(data, ws);
-            }
-        } catch (e) {
-            console.error("Invalid message", e);
-        }
+            else if(["offer","answer","iceCandidate"].includes(data.type)){broadcast(data,ws);}
+            else if(data.type==="watchStream"){ /* optional: handle if needed */ }
+        }catch(e){console.error(e);}
     });
 
-    ws.on("close", () => {
-        // remove stream if user disconnects
-        if (ws.stream) {
-            streams = streams.filter((s) => s.id !== ws.id);
-            broadcast({ type: "streamsUpdate", streams });
-        }
+    ws.on("close",()=>{
+        if(ws.stream){streams=streams.filter(s=>s.id!==ws.stream.id);broadcast({type:"streamsUpdate",streams});}
     });
 });
 
