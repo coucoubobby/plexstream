@@ -18,16 +18,317 @@
     .carousel,.grid{display:flex;gap:15px;overflow-x:auto;}
     .card{background:#222;padding:15px;border-radius:8px;min-width:200px;flex-shrink:0;}
     input,select{padding:8px;margin:5px 0;border-radius:4px;border:none;width:100%;}
-    #chat-container,#messages{height:250px;overflow-y:auto;background:#111;padding:10px;border-radius:6px;margin-top:10px;}
-    #chat-container p,#messages p{margin:5px 0;}
-    .flex-row{display:flex;align-items:center;gap:10px;}
-    .hidden{display:none;}
-    video{width:100%;max-width:500px;margin:10px 0;border-radius:8px;background:#000;}
-    .chat-msg strong{margin-right:5px;}
+
+
     #search-container{display:flex;gap:10px;align-items:center;}
     #search-results{margin-top:10px;}
     .result-card{background:#222;padding:10px;margin:5px 0;border-radius:6px;}
 </style>
+    #chat-container{height:250px;overflow-y:auto;background:#111;padding:10px;border-radius:6px;margin-top:10px;}
+    #chat-container p{margin:5px 0;}
+    .flex-row{display:flex;align-items:center;gap:10px;}
+    .hidden{display:none;}
+    video{width:100%;max-width:500px;margin:10px 0;border-radius:8px;background:#000;}
+
+</style>
+</head>
+<body>
+
+<header>
+    <div id="logo"><strong>PlexStream</strong></div>
+    <nav>
+        <a href="#" onclick="showSection('home')">Home</a>
+        <a href="#" onclick="showSection('browse')">Browse</a>
+        <a href="#" onclick="showSection('following')">Following</a>
+    </nav>
+    <div id="user-actions">
+        <button onclick="showLogin()">Login / Signup</button>
+    </div>
+</header>
+
+<main>
+    <section id="home">
+        <h1>Welcome to PlexStream</h1>
+        <div class="flex-row">
+            <button id="go-live-btn">Go Live</button>
+            <input type="text" placeholder="Search channels..." id="search-input"/>
+        </div>
+
+
+        <h2>Featured Streams</h2>
+        <div class="carousel" id="featured-streams">
+            <div class="card">Stream 1</div>
+            <div class="card">Stream 2</div>
+            <div class="card">Stream 3</div>
+        </div>
+
+        <h2>Live Channels You Follow</h2>
+        <div class="grid" id="followed-streams">
+            <div class="card flex-row">Channel 1 <button onclick="toggleFollow(this)">Follow</button></div>
+            <div class="card flex-row">Channel 2 <button onclick="toggleFollow(this)">Follow</button></div>
+        </div>
+    </section>
+
+    <!-- STREAM VIEWER -->
+    <section id="viewer" class="hidden">
+        <h2 id="viewer-title">Stream Title</h2>
+        <video id="stream-player" autoplay controls></video>
+        <p>Streamer: <span id="streamer-name">Streamer1</span>
+
+        <h2>Featured Streams</h2>
+        <div class="carousel" id="featured-streams"></div>
+        <h2>Live Channels You Follow</h2>
+        <div class="grid" id="followed-streams"></div>
+    </section>
+
+    <section id="viewer" class="hidden">
+        <h2 id="viewer-title">Stream Title</h2>
+        <video id="stream-player" autoplay controls></video>
+        <p>Streamer: <span id="streamer-name"></span>
+
+            <button id="follow-btn" onclick="toggleFollow(this)">Follow</button>
+        </p>
+        <div id="chat-container"></div>
+        <div class="flex-row">
+            <input id="chat-input" placeholder="Type a message"/>
+            <button id="chat-send-btn">Send</button>
+        </div>
+    </section>
+
+
+    <section id="dashboard" class="hidden">
+        <h2>Streamer Dashboard</h2>
+        <video id="broadcasterVideo" autoplay playsinline></video>
+        <label>Stream Title:<input type="text" id="stream-title"/></label>
+        <label>Category:
+            <select id="stream-category">
+                <option value="gaming">Gaming</option>
+                <option value="music">Music</option>
+                <option value="chat">Chat</option>
+            </select>
+        </label>
+        <div class="flex-row">
+            <button id="start-stream-btn">Start Streaming</button>
+            <button id="stop-stream-btn" class="hidden">Stop Streaming</button>
+        </div>
+        <p>Stream Key: <span id="stream-key">XXXX-XXXX</span> <button onclick="copyKey()">Copy</button></p>
+        <div id="chat">
+            <h3>Chat</h3>
+            <div id="messages"></div>
+            <input id="chatInputDashboard" type="text" placeholder="Type a message...">
+            <button onclick="sendMessageDashboard()">Send</button>
+        </div>
+    </section>
+
+    <!-- LOGIN MODAL -->
+    <section id="login-modal" class="hidden">
+        <h2>Login / Signup</h2>
+        <label>Username:<input type="text" id="login-user"/></label>
+        <label>Password:<input type="password" id="login-pass"/></label>
+        <div class="flex-row">
+            <button onclick="login()">Login</button>
+            <button onclick="signup()">Signup</button>
+            <button onclick="hideLogin()">Close</button>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div>PlexStream &copy; 2025</div>
+    <div>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Help</a>
+        <a href="#">Status</a>
+    </div>
+</footer>
+
+<script>
+let currentUser = null;
+const userColors = {}; // random color per user
+
+function randomColor(){
+    const colors = ["#1e90ff","#ff4c4c","#4cff4c","#ffd93d","#a259ff","#ff7f50","#00ced1"];
+    return colors[Math.floor(Math.random()*colors.length)];
+}
+
+// NAVIGATION
+function showSection(id){
+    document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+
+// LOGIN MODAL
+function showLogin(){document.getElementById('login-modal').classList.remove('hidden');}
+function hideLogin(){document.getElementById('login-modal').classList.add('hidden');}
+function login(){
+    const u=document.getElementById('login-user').value.trim();
+    const p=document.getElementById('login-pass').value.trim();
+    if(u && p){
+        currentUser=u;
+        if(!userColors[u]) userColors[u]=randomColor();
+        alert('Logged in as '+u);
+        hideLogin();
+        document.getElementById('user-actions').innerHTML=`<span>${u}</span> <button onclick="logout()">Logout</button>`;
+    }
+}
+function signup(){login();}
+function logout(){
+    currentUser=null;
+    document.getElementById('user-actions').innerHTML=`<button onclick="showLogin()">Login / Signup</button>`;
+    alert('Logged out');
+}
+
+// DASHBOARD BUTTONS
+document.getElementById('go-live-btn').addEventListener('click',()=>{if(!currentUser)return alert("Login first"); showSection('dashboard');});
+const startBtn=document.getElementById('start-stream-btn');
+const stopBtn=document.getElementById('stop-stream-btn');
+const broadcasterVideo=document.getElementById('broadcasterVideo');
+const messagesDiv=document.getElementById('messages');
+const chatInputDashboard=document.getElementById('chatInputDashboard');
+const chatInput=document.getElementById('chat-input');
+const chatSendBtn=document.getElementById('chat-send-btn');
+const chatContainer=document.getElementById('chat-container');
+
+let peerConnection;
+const config={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+
+// DUMMY WEBSOCKET (just for local in-memory chat)
+let localChatLog=[];
+function renderChat(message){
+    const p=document.createElement('p'); p.className='chat-msg';
+    const strong=document.createElement('strong');
+    const [user,text]=message.split(":"); 
+    strong.textContent=user; 
+    strong.style.color=userColors[user]||"#fff";
+    const span=document.createElement('span'); 
+    span.textContent=":"+text;
+    p.appendChild(strong); p.appendChild(span);
+    chatContainer.appendChild(p.cloneNode(true));
+    messagesDiv.appendChild(p.cloneNode(true));
+    chatContainer.scrollTop=chatContainer.scrollHeight;
+    messagesDiv.scrollTop=messagesDiv.scrollHeight;
+}
+
+// SEND CHAT
+function sendMessageDashboard(){
+    const msg=chatInputDashboard.value.trim();
+    if(!currentUser){alert("Login first"); return;}
+    if(msg){
+        const fullMsg=currentUser+":"+msg;
+        localChatLog.push(fullMsg);
+        renderChat(fullMsg);
+        chatInputDashboard.value='';
+    }
+}
+function sendMessage(){
+    const msg=chatInput.value.trim();
+    if(!currentUser){alert("Login first"); return;}
+    if(msg){
+        const fullMsg=currentUser+":"+msg;
+        localChatLog.push(fullMsg);
+        renderChat(fullMsg);
+        chatInput.value='';
+    }
+}
+chatSendBtn.addEventListener('click',sendMessage);
+chatInput.addEventListener('keypress',e=>{if(e.key==='Enter') sendMessage();});
+chatInputDashboard.addEventListener('keypress',e=>{if(e.key==='Enter') sendMessageDashboard();});
+
+// FOLLOW BUTTON
+function toggleFollow(btn){btn.innerText = btn.innerText==='Follow'?'Following':'Follow';}
+
+// START / STOP BROADCAST
+startBtn.addEventListener('click',async ()=>{
+    if(!currentUser)return alert("Login first");
+    startBtn.classList.add('hidden'); stopBtn.classList.remove('hidden');
+    const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+    broadcasterVideo.srcObject=stream;
+    peerConnection=new RTCPeerConnection(config);
+    stream.getTracks().forEach(track=>peerConnection.addTrack(track,stream));
+    peerConnection.onicecandidate=({candidate})=>{
+        // dummy for local
+    };
+});
+stopBtn.addEventListener('click',()=>{
+    stopBtn.classList.add('hidden'); startBtn.classList.remove('hidden');
+    if(peerConnection){
+        peerConnection.getSenders().forEach(s=>peerConnection.removeTrack(s));
+        peerConnection.close(); peerConnection=null;
+    }
+    if(broadcasterVideo.srcObject){
+        broadcasterVideo.srcObject.getTracks().forEach(t=>t.stop());
+        broadcasterVideo.srcObject=null;
+    }
+});
+
+// COPY STREAM KEY
+function copyKey(){navigator.clipboard.writeText(document.getElementById('stream-key').innerText); alert('Copied!');}
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlexStream</title>
+    <style>
+        body {
+            background-color: black;
+            color: linear-gradient(to right, purple, blue);
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+        }
+        .logo {
+            width: 50px;
+            height: 50px;
+            background-image: url('placeholder-icon.png');
+            background-size: cover;
+            margin-right: 10px;
+        }
+        .nav {
+            display: flex;
+            gap: 15px;
+        }
+        .nav button {
+            background: linear-gradient(to right, purple, blue);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .nav button:hover {
+            transform: scale(1.05);
+        }
+        .stream-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .stream-title {
+            color: linear-gradient(to right, purple, blue);
+            font-size: 24px;
+        }
+        .viewer-count {
+            color: white;
+        }
+        .chat {
+            width: 300px;
+            height: 200px;
+            background: gray;
+            margin-top: 10px;
+            overflow-y: auto;
+        }
+        .chat-input {
+            width: 300px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
 
@@ -145,6 +446,7 @@ function showSection(id){
     document.getElementById(id).classList.remove('hidden');
 }
 
+
 function showLogin(){document.getElementById('login-modal').classList.remove('hidden');}
 function hideLogin(){document.getElementById('login-modal').classList.add('hidden');}
 
@@ -165,6 +467,103 @@ function logout(){
     document.getElementById('user-login').innerHTML=`<button onclick="showLogin()">Login / Signup</button>`;
     alert('Logged out');
 }
+=======
+        function showForYou() {
+            // Logic to show for you page
+        }
+    });
+    // NAV
+    function showSection(id){
+        document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    // LOGIN MODAL
+    function showLogin(){document.getElementById('login-modal').classList.remove('hidden');}
+    function hideLogin(){document.getElementById('login-modal').classList.add('hidden');}
+
+    async function login(){
+        const email=document.getElementById('login-email').value.trim();
+        const pass=document.getElementById('login-pass').value.trim();
+        if(!email||!pass) return alert('Fill both fields');
+        try{
+            const res=await loginUser(email,pass);
+            if(res.success){
+                currentUser=res.user;
+                hideLogin();
+                document.getElementById('user-actions').innerHTML=`<span>${res.user.email}</span> <button onclick="logout()">Logout</button>`;
+            }else alert(res.message||'Login failed');
+        }catch(e){console.error(e);alert('Error logging in');}
+    }
+
+    async function signup(){
+        const email=document.getElementById('login-email').value.trim();
+        const pass=document.getElementById('login-pass').value.trim();
+        if(!email||!pass) return alert('Fill both fields');
+        try{
+            const res=await signupUser(email,pass);
+            if(res.success){
+                currentUser=res.user;
+                hideLogin();
+                document.getElementById('user-actions').innerHTML=`<span>${res.user.email}</span> <button onclick="logout()">Logout</button>`;
+            }else alert(res.message||'Signup failed');
+        }catch(e){console.error(e);alert('Error signing up');}
+    }
+
+    function logout(){
+        currentUser=null;
+        document.getElementById('user-actions').innerHTML=`<button onclick="showLogin()">Login / Signup</button>`;
+        alert('Logged out');
+    }
+
+    // DASHBOARD
+    document.getElementById('go-live-btn').addEventListener('click',()=>{if(!currentUser) return alert('Login to go live'); showSection('dashboard');});
+
+    const startBtn=document.getElementById('start-stream-btn');
+    const stopBtn=document.getElementById('stop-stream-btn');
+
+    startBtn.addEventListener('click',startBroadcast);
+    stopBtn.addEventListener('click',stopBroadcast);
+
+    async function startBroadcast(){
+        if(!currentUser) return alert('Login to stream');
+        startBtn.classList.add('hidden'); stopBtn.classList.remove('hidden');
+        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+        broadcasterVideo.srcObject=stream;
+        peerConnection=new RTCPeerConnection(config);
+        stream.getTracks().forEach(t=>peerConnection.addTrack(t,stream));
+        peerConnection.onicecandidate=({candidate})=>{ if(candidate) ws.send(JSON.stringify({iceCandidate:candidate})); };
+        const offer=await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        ws.send(JSON.stringify({type:'offer',offer}));
+    }
+
+    function stopBroadcast(){
+        stopBtn.classList.add('hidden'); startBtn.classList.remove('hidden');
+        if(peerConnection){peerConnection.getSenders().forEach(s=>peerConnection.removeTrack(s)); peerConnection.close(); peerConnection=null;}
+        if(broadcasterVideo.srcObject){broadcasterVideo.srcObject.getTracks().forEach(t=>t.stop()); broadcasterVideo.srcObject=null;}
+    }
+
+    function copyKey(){navigator.clipboard.writeText(document.getElementById('stream-key').innerText); alert('Copied!');}
+    function toggleFollow(btn){btn.innerText=btn.innerText==='Follow'?'Following':'Follow';}
+
+    function sendMessageDashboard(){
+        const message=chatInputDashboard.value.trim();
+        if(message){ ws.send(JSON.stringify({type:'chat',chat:message})); chatInputDashboard.value=''; }
+    }
+
+    chatInputDashboard.addEventListener('keypress',e=>{if(e.key==='Enter') sendMessageDashboard();});
+</script>
+</body>
+     </html>
+=======
+        function startBroadcast() {
+            isStreaming = true;
+            document.getElementById('streamContainer').style.display = 'flex';
+            document.getElementById('streamTitle').innerText = "Live Stream Title";
+            updateViewerCount();
+        }
+
 
 document.getElementById('go-live-btn').addEventListener('click',()=>{if(!currentUser)return alert("Login first"); showSection('dashboard');});
 
@@ -244,3 +643,6 @@ function searchStreams(){
 </script>
 </body>
             </html>
+=======
+</html>
+<iframe src="https://www.guilded.gg/canvas_index.html?route=%2Fcanvas%2Fembed%2Fbadge%2FRnJobggR" width="166" height="48" frameborder="0" scrolling="no"></iframe>
