@@ -1,6 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlexStream</title>
+<style>
+    * {margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+    body{background:#0a0a0a;color:#fff;line-height:1.5;}
+    a{text-decoration:none;}
+    h1,h2,p,span,a{background: linear-gradient(90deg,#a259ff,#1e90ff);-webkit-background-clip: text;-webkit-text-fill-color: transparent;}
+    button{cursor:pointer;border:none;border-radius:4px;padding:8px 16px;background: linear-gradient(90deg,#a259ff,#1e90ff);color:#fff;transition: filter 0.2s;}
+    button:hover{filter: brightness(0.85);}
+    header,footer{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;background:#111;}
+    main{padding:20px; max-width:1200px; margin:auto;}
+    nav a{margin:0 15px;}
+    section{margin-bottom:40px;}
+    .carousel,.grid{display:flex;gap:15px;overflow-x:auto;}
+    .card{background:#222;padding:15px;border-radius:8px;min-width:200px;flex-shrink:0;}
+    input,select{padding:8px;margin:5px 0;border-radius:4px;border:none;width:100%;}
+    #chat-container{height:250px;overflow-y:auto;background:#111;padding:10px;border-radius:6px;margin-top:10px;}
+    #chat-container p{margin:5px 0;}
+    .flex-row{display:flex;align-items:center;gap:10px;}
+    .hidden{display:none;}
+    video{width:100%;max-width:500px;margin:10px 0;border-radius:8px;background:#000;}
+</style>
+</head>
+<body>
+
+<header>
+    <div id="logo"><strong>PlexStream</strong></div>
+    <nav>
+        <a href="#" onclick="showSection('home')">Home</a>
+        <a href="#" onclick="showSection('browse')">Browse</a>
+        <a href="#" onclick="showSection('following')">Following</a>
+    </nav>
+    <div id="user-actions">
+        <button onclick="showLogin()">Login / Signup</button>
+    </div>
+</header>
+
+<main>
+    <section id="home">
+        <h1>Welcome to PlexStream</h1>
+        <div class="flex-row">
+            <button id="go-live-btn">Go Live</button>
+            <input type="text" placeholder="Search channels..." id="search-input"/>
+        </div>
+        <h2>Featured Streams</h2>
+        <div class="carousel" id="featured-streams"></div>
+        <h2>Live Channels You Follow</h2>
+        <div class="grid" id="followed-streams"></div>
+    </section>
+
+    <section id="viewer" class="hidden">
+        <h2 id="viewer-title">Stream Title</h2>
+        <video id="stream-player" autoplay controls></video>
+        <p>Streamer: <span id="streamer-name"></span>
+            <button id="follow-btn" onclick="toggleFollow(this)">Follow</button>
+        </p>
+        <div id="chat-container"></div>
+        <div class="flex-row">
+            <input id="chat-input" placeholder="Type a message"/>
+            <button id="chat-send-btn">Send</button>
+        </div>
+    </section>
+
+    <section id="dashboard" class="hidden">
+        <h2>Streamer Dashboard</h2>
+        <video id="broadcasterVideo" autoplay playsinline></video>
+        <label>Stream Title:<input type="text" id="stream-title"/></label>
+        <label>Category:
+            <select id="stream-category">
+                <option value="gaming">Gaming</option>
+                <option value="music">Music</option>
+                <option value="chat">Chat</option>
+            </select>
+        </label>
+        <div class="flex-row">
+            <button id="start-stream-btn">Start Streaming</button>
+            <button id="stop-stream-btn" class="hidden">Stop Streaming</button>
+        </div>
+        <p>Stream Key: <span id="stream-key">XXXX-XXXX</span> <button onclick="copyKey()">Copy</button></p>
+        <div id="chat">
+            <h3>Chat</h3>
+            <div id="messages"></div>
+            <input id="chatInputDashboard" type="text" placeholder="Type a message...">
+            <button onclick="sendMessageDashboard()">Send</button>
+        </div>
+    </section>
+
+    <section id="login-modal" class="hidden">
+        <h2>Login / Signup</h2>
+        <label>Email:<input type="email" id="login-email"/></label>
+        <label>Password:<input type="password" id="login-pass"/></label>
+        <div class="flex-row">
+            <button onclick="login()">Login</button>
+            <button onclick="signup()">Signup</button>
+            <button onclick="hideLogin()">Close</button>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div>PlexStream &copy; 2025</div>
+    <div>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Help</a>
+        <a href="#">Status</a>
+    </div>
+</footer>
+
+<script src="./signup.js"></script>
+<script>
+    let currentUser = null;
+    let peerConnection;
+    const config = { iceServers:[{urls:'stun:stun.l.google.com:19302'}] };
+    const ws = new WebSocket('ws://localhost:8080'); // replace with deployed server
+    const broadcasterVideo = document.getElementById('broadcasterVideo');
+    const messagesDiv = document.getElementById('messages');
+    const chatInputDashboard = document.getElementById('chatInputDashboard');
+
+    ws.addEventListener('open',()=>console.log('WebSocket connected'));
+    ws.addEventListener('message', async ({data})=>{
+        const message = JSON.parse(data);
+        if(message.offer){
+            peerConnection = new RTCPeerConnection(config);
+            peerConnection.ontrack = e=>document.getElementById('stream-player').srcObject=e.streams[0];
+            peerConnection.onicecandidate = ({candidate})=>{ if(candidate) ws.send(JSON.stringify({iceCandidate:candidate})); };
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            ws.send(JSON.stringify({answer}));
+        } else if(message.answer){
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(message.answer));
+        } else if(message.iceCandidate){
+            await peerConnection.addIceCandidate(new RTCIceCandidate(message.iceCandidate));
+        } else if(message.chat){
+            const p = document.createElement('p'); p.textContent=message.chat; messagesDiv.appendChild(p); messagesDiv.scrollTop=messagesDiv.scrollHeight;
+=======
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PlexStream</title>
@@ -99,7 +237,92 @@
         function showForYou() {
             // Logic to show for you page
         }
+    });
+    // NAV
+    function showSection(id){
+        document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
 
+    // LOGIN MODAL
+    function showLogin(){document.getElementById('login-modal').classList.remove('hidden');}
+    function hideLogin(){document.getElementById('login-modal').classList.add('hidden');}
+
+    async function login(){
+        const email=document.getElementById('login-email').value.trim();
+        const pass=document.getElementById('login-pass').value.trim();
+        if(!email||!pass) return alert('Fill both fields');
+        try{
+            const res=await loginUser(email,pass);
+            if(res.success){
+                currentUser=res.user;
+                hideLogin();
+                document.getElementById('user-actions').innerHTML=`<span>${res.user.email}</span> <button onclick="logout()">Logout</button>`;
+            }else alert(res.message||'Login failed');
+        }catch(e){console.error(e);alert('Error logging in');}
+    }
+
+    async function signup(){
+        const email=document.getElementById('login-email').value.trim();
+        const pass=document.getElementById('login-pass').value.trim();
+        if(!email||!pass) return alert('Fill both fields');
+        try{
+            const res=await signupUser(email,pass);
+            if(res.success){
+                currentUser=res.user;
+                hideLogin();
+                document.getElementById('user-actions').innerHTML=`<span>${res.user.email}</span> <button onclick="logout()">Logout</button>`;
+            }else alert(res.message||'Signup failed');
+        }catch(e){console.error(e);alert('Error signing up');}
+    }
+
+    function logout(){
+        currentUser=null;
+        document.getElementById('user-actions').innerHTML=`<button onclick="showLogin()">Login / Signup</button>`;
+        alert('Logged out');
+    }
+
+    // DASHBOARD
+    document.getElementById('go-live-btn').addEventListener('click',()=>{if(!currentUser) return alert('Login to go live'); showSection('dashboard');});
+
+    const startBtn=document.getElementById('start-stream-btn');
+    const stopBtn=document.getElementById('stop-stream-btn');
+
+    startBtn.addEventListener('click',startBroadcast);
+    stopBtn.addEventListener('click',stopBroadcast);
+
+    async function startBroadcast(){
+        if(!currentUser) return alert('Login to stream');
+        startBtn.classList.add('hidden'); stopBtn.classList.remove('hidden');
+        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+        broadcasterVideo.srcObject=stream;
+        peerConnection=new RTCPeerConnection(config);
+        stream.getTracks().forEach(t=>peerConnection.addTrack(t,stream));
+        peerConnection.onicecandidate=({candidate})=>{ if(candidate) ws.send(JSON.stringify({iceCandidate:candidate})); };
+        const offer=await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        ws.send(JSON.stringify({type:'offer',offer}));
+    }
+
+    function stopBroadcast(){
+        stopBtn.classList.add('hidden'); startBtn.classList.remove('hidden');
+        if(peerConnection){peerConnection.getSenders().forEach(s=>peerConnection.removeTrack(s)); peerConnection.close(); peerConnection=null;}
+        if(broadcasterVideo.srcObject){broadcasterVideo.srcObject.getTracks().forEach(t=>t.stop()); broadcasterVideo.srcObject=null;}
+    }
+
+    function copyKey(){navigator.clipboard.writeText(document.getElementById('stream-key').innerText); alert('Copied!');}
+    function toggleFollow(btn){btn.innerText=btn.innerText==='Follow'?'Following':'Follow';}
+
+    function sendMessageDashboard(){
+        const message=chatInputDashboard.value.trim();
+        if(message){ ws.send(JSON.stringify({type:'chat',chat:message})); chatInputDashboard.value=''; }
+    }
+
+    chatInputDashboard.addEventListener('keypress',e=>{if(e.key==='Enter') sendMessageDashboard();});
+</script>
+</body>
+     </html>
+=======
         function startBroadcast() {
             isStreaming = true;
             document.getElementById('streamContainer').style.display = 'flex';
