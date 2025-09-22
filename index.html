@@ -138,9 +138,106 @@
             await peerConnection.addIceCandidate(new RTCIceCandidate(message.iceCandidate));
         } else if(message.chat){
             const p = document.createElement('p'); p.textContent=message.chat; messagesDiv.appendChild(p); messagesDiv.scrollTop=messagesDiv.scrollHeight;
+=======
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlexStream</title>
+    <style>
+        body {
+            background-color: black;
+            color: linear-gradient(to right, purple, blue);
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+        }
+        .logo {
+            width: 50px;
+            height: 50px;
+            background-image: url('placeholder-icon.png');
+            background-size: cover;
+            margin-right: 10px;
+        }
+        .nav {
+            display: flex;
+            gap: 15px;
+        }
+        .nav button {
+            background: linear-gradient(to right, purple, blue);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .nav button:hover {
+            transform: scale(1.05);
+        }
+        .stream-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .stream-title {
+            color: linear-gradient(to right, purple, blue);
+            font-size: 24px;
+        }
+        .viewer-count {
+            color: white;
+        }
+        .chat {
+            width: 300px;
+            height: 200px;
+            background: gray;
+            margin-top: 10px;
+            overflow-y: auto;
+        }
+        .chat-input {
+            width: 300px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo"></div>
+        <h1>PlexStream</h1>
+        <div class="nav">
+            <button onclick="showHome()">Home</button>
+            <button onclick="showFollowing()">Following</button>
+            <button onclick="showForYou()">For You</button>
+            <button onclick="startBroadcast()">Start Streaming</button>
+            <button onclick="login()">Log In</button>
+        </div>
+    </header>
+    <div class="stream-container" id="streamContainer">
+        <h2 class="stream-title" id="streamTitle"></h2>
+        <div class="viewer-count" id="viewerCount"></div>
+        <div class="chat" id="chat"></div>
+        <input type="text" class="chat-input" id="chatInput" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    <script>
+        let isStreaming = false;
+        let viewerCount = 0;
+
+        function showHome() {
+            // Logic to show home page
+        }
+
+        function showFollowing() {
+            // Logic to show following page
+        }
+
+        function showForYou() {
+            // Logic to show for you page
         }
     });
-
     // NAV
     function showSection(id){
         document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
@@ -225,3 +322,33 @@
 </script>
 </body>
      </html>
+=======
+        function startBroadcast() {
+            isStreaming = true;
+            document.getElementById('streamContainer').style.display = 'flex';
+            document.getElementById('streamTitle').innerText = "Live Stream Title";
+            updateViewerCount();
+        }
+
+        function updateViewerCount() {
+            viewerCount++;
+            document.getElementById('viewerCount').innerText = viewerCount + " viewers online";
+        }
+
+        function login() {
+            // Logic for login
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('chatInput').value;
+            const chatBox = document.getElementById('chat');
+            chatBox.innerHTML += `<div>${message}</div>`;
+            document.getElementById('chatInput').value = '';
+        }
+    </script>
+    <!-- Start of plexstream Zendesk Widget script -->
+<script id="ze-snippet" src="https://static.zdassets.com/ekr/snippet.js?key=66b67f16-fec7-45cf-97cc-5bac80d8e5b4"> </script>
+<!-- End of plexstream Zendesk Widget script -->
+</body>
+</html>
+<iframe src="https://www.guilded.gg/canvas_index.html?route=%2Fcanvas%2Fembed%2Fbadge%2FRnJobggR" width="166" height="48" frameborder="0" scrolling="no"></iframe>
